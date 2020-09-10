@@ -1,0 +1,69 @@
+name: Release
+on:
+  push:
+    tags:
+      - v*
+
+env:
+  CARGO_TERM_COLOR: always
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  build:
+    name: Build Release Asset
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Build release artifact
+        run: cargo build --verbose --release
+      - name: Save artifact
+        uses: actions/upload-artifact@v2
+        with:
+          if-no-files-found: error
+          name: pre-push-${{ matrix.os }}
+          path: ./target/release/pre-push*
+    strategy:
+      matrix:
+        os:
+          - macos-latest
+          - windows-latest
+          - ubuntu-latest
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - id: download
+        name: Download pre-push artifacts
+        uses: actions/download-artifact@v2
+      - id: create_release
+        name: Create Release
+        uses: actions/create-release@v1
+        with:
+          draft: false
+          prerelease: false
+          release_name: Release ${{ github.ref }}
+          tag_name: ${{ github.ref }}
+      - name: Upload Release Asset (macos)
+        uses: actions/upload-release-asset@v1
+        with:
+          asset_content_type: application/octet-stream
+          asset_name: pre-push macos
+          asset_path: ${{ steps.download.outputs.download-path }}/pre-push-macos-latest/pre-push
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+      - name: Upload Release Asset (windows)
+        uses: actions/upload-release-asset@v1
+        with:
+          asset_content_type: application/octet-stream
+          asset_name: pre-push windows
+          asset_path: ${{ steps.download.outputs.download-path }}/pre-push-windows-latest/pre-push.exe
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+      - name: Upload Release Asset (ubuntu)
+        uses: actions/upload-release-asset@v1
+        with:
+          asset_content_type: application/octet-stream
+          asset_name: pre-push linux
+          asset_path: ${{ steps.download.outputs.download-path }}/pre-push-ubuntu-latest/pre-push
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
