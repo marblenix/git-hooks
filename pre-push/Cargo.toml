@@ -1,0 +1,13 @@
+[package]
+name = "pre-push"
+version = "0.1.0"
+authors = ["Cassidy Marble"]
+edition = "2018"
+
+[dependencies]
+git2 = "0.13"
+simplelog = "0.7"
+
+[dependencies.log]
+version = "0.4"
+features = ["max_level_debug", "release_max_level_warn"]
