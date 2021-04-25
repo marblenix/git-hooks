@@ -1,2 +1,6 @@
 [workspace]
-members = ["pre-push"]
+members = [
+    "util",
+    "pre-push",
+    "prepare-commit-msg"
+]
