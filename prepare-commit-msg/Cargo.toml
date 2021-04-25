@@ -1,5 +1,5 @@
 [package]
-name = "pre-push"
+name = "prepare-commit-msg"
 version = "0.1.0"
 authors = ["Cassidy Marble"]
 edition = "2018"
