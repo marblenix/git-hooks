@@ -5,62 +5,58 @@ use std::path::PathBuf;
 use std::process::exit;
 
 use git2::Repository;
+use util::ExitCodes;
 
 const SEPARATOR_SETTING: &'static str = "hooks.prepare-commit-msg.branchSeparator";
 const PREPARE_COMMIT_MSG_ENABLED_SETTING: &'static str = "hooks.prepare-commit-msg.enabled";
 
 fn main() {
     util::log_init();
+    args().for_each(|a| log::debug!("ARG: {}", a));
     let mut args: Args = args();
-    let binary = args.next();
+    let _binary = args.next();
     let commit_msg_file = args.next();
     let commit_source = args.next();
-    log::debug!("binary: {:?}", binary);
 
-    let repo: Repository = match util::get_repository() {
-        None => exit(1),
-        Some(r) => r
-    };
+    let repo: Repository = util::get_repository();
 
     let enabled = util::get_config_bool(&repo, PREPARE_COMMIT_MSG_ENABLED_SETTING).unwrap_or(true);
     if !enabled {
-        log::warn!("Disabled! Skipping prepare-commit-msg hook...");
-        exit(0);
+        log::warn!("{}", ExitCodes::Disabled.message());
+        exit(ExitCodes::Disabled.value());
     }
 
     if commit_source.is_none() && commit_msg_file.is_some() {
-        // this is a new commit, go ahead and prepare a template
-
-        let path: PathBuf = [
-            repo.workdir().expect("Repo has no working directory").to_str().unwrap(),
-            commit_msg_file.unwrap().as_ref()
-        ].iter().collect();
-        let full_path = path.into_os_string();
-        log::debug!("PATH: {:?}", full_path);
-
-        match util::get_branch_name(&repo) {
+        let working_directory = match repo.workdir() {
             None => {
-                log::error!("Failed to get branch name for repository, refusing to create a commit message template");
-                exit(0);
+                log::error!("{}", ExitCodes::NoWorkingDirectory.message());
+                exit(ExitCodes::NoWorkingDirectory.value())
             }
-            Some(branch_name) => {
-                let dynamic_message = format!(
-                    "{} {} ",
-                    branch_name,
-                    util::get_config_string(&repo, SEPARATOR_SETTING).unwrap_or("|".to_string()));
+            Some(working_directory) => working_directory.to_str().unwrap()
+        };
 
-                match prepend_file(dynamic_message.as_str(), full_path.to_str().unwrap()) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        log::error!("Failed to write to file: {}", e);
-                        exit(1);
-                    }
-                }
+        let path: PathBuf = [working_directory, commit_msg_file.unwrap().as_ref()].iter().collect();
+        let full_path = path.into_os_string();
+        log::debug!("Commit msg file: {:?}", full_path);
+        let branch_name = util::get_branch_name(&repo);
+
+        let dynamic_message = format!(
+            "{} {} ",
+            branch_name,
+            util::get_config_string(&repo, SEPARATOR_SETTING).unwrap_or("|".to_string()));
+
+        match prepend_file(dynamic_message.as_str(), full_path.to_str().unwrap()) {
+            Ok(_) => {}
+            Err(e) => {
+                log::trace!("{}", e);
+                log::error!("{}", ExitCodes::FailedToWriteCommitMsg.message());
+                exit(ExitCodes::FailedToWriteCommitMsg.value());
             }
         }
     }
 
-    exit(0)
+    log::debug!("{}", ExitCodes::OK.message());
+    exit(ExitCodes::OK.value())
 }
 
 fn prepend_file(data: &str, file_path: &str) -> std::io::Result<()> {

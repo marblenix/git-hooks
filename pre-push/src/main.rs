@@ -2,6 +2,7 @@ use std::env::args;
 use std::process::exit;
 
 use git2::Repository;
+use util::ExitCodes;
 
 const DEFAULT_PROTECTED_BRANCHES: [&str; 2] = ["master", "develop"];
 const PROTECTED_BRANCHES_SETTING: &'static str = "hooks.pre-push.protectedBranches";
@@ -10,20 +11,17 @@ const PRE_PUSH_ENABLED_SETTING: &'static str = "hooks.pre-push.enabled";
 fn main() {
     util::log_init();
     args().for_each(|a| log::debug!("ARG: {}", a));
-    let repo: Repository = match util::get_repository() {
-        None => exit(1),
-        Some(r) => r
-    };
+    let repo: Repository = util::get_repository();
 
     if repo.is_bare() {
-        log::error!("Cannot check a bare repository");
-        exit(1)
+        log::error!("{}", ExitCodes::RepositoryIsBare.message());
+        exit(ExitCodes::RepositoryIsBare.value())
     }
 
     let enabled = util::get_config_bool(&repo, PRE_PUSH_ENABLED_SETTING).unwrap_or(true);
     if !enabled {
-        log::warn!("Disabled! Skipping pre-push hook...");
-        exit(0);
+        log::warn!("{}", ExitCodes::Disabled.message());
+        exit(ExitCodes::Disabled.value());
     }
 
     let mut protected_branches: Vec<String> =
@@ -35,21 +33,12 @@ fn main() {
         }
     }
 
-    let branch = match util::get_branch_name(&repo) {
-        None => {
-            log::error!("Invalid branch or no branch name found");
-            exit(1);
-        }
-        Some(branch_name) => branch_name
-    };
-
-    if protected_branches.contains(&branch) {
-        log::error!(
-            "branch \"{}\" is a protected branch, cancelling push",
-            branch
-        );
-        exit(1)
+    let branch_name = util::get_branch_name(&repo);
+    if protected_branches.contains(&branch_name) {
+        log::error!("{}", ExitCodes::ProtectedBranch.message());
+        exit(ExitCodes::ProtectedBranch.value())
     }
 
-    exit(1)
+    log::debug!("{}", ExitCodes::OK.message());
+    exit(ExitCodes::OK.value())
 }

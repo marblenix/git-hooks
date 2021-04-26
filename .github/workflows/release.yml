@@ -11,7 +11,7 @@ env:
 jobs:
   build:
     name: Build Release Asset
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os.label }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
@@ -21,23 +21,22 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           if-no-files-found: error
-          name: pre-push-${{ matrix.os }}
-          path: ./target/release/pre-push*
+          name: ${{ matrix.os.label }}
+          path: |
+            ./target/release/pre-push${{ matrix.os.ext }}
+            ./target/release/prepare-commit-msg${{ matrix.os.ext }}
     strategy:
       matrix:
         os:
-          - macos-latest
-          - windows-latest
-          - ubuntu-latest
+          - { label: macos-latest, ext: '' }
+          - { label: ubuntu-latest, ext: '' }
+          - { label: windows-latest, ext: '.exe' }
 
   release:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - id: download
-        name: Download pre-push artifacts
-        uses: actions/download-artifact@v2
       - id: create_release
         name: Create Release
         uses: actions/create-release@v1
@@ -46,24 +45,33 @@ jobs:
           prerelease: false
           release_name: Release ${{ github.ref }}
           tag_name: ${{ github.ref }}
-      - name: Upload Release Asset (macos)
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+  upload:
+    name: Upload Release Artifact
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - id: download
+        name: Download pre-push artifacts
+        uses: actions/download-artifact@v2
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: ${{ steps.download.outputs.download-path }}
+      - name: Upload Release Asset (${{ matrix.os.label }})
         uses: actions/upload-release-asset@v1
         with:
           asset_content_type: application/octet-stream
-          asset_name: pre-push macos
-          asset_path: ${{ steps.download.outputs.download-path }}/pre-push-macos-latest/pre-push
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-      - name: Upload Release Asset (windows)
-        uses: actions/upload-release-asset@v1
-        with:
-          asset_content_type: application/octet-stream
-          asset_name: pre-push windows
-          asset_path: ${{ steps.download.outputs.download-path }}/pre-push-windows-latest/pre-push.exe
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-      - name: Upload Release Asset (ubuntu)
-        uses: actions/upload-release-asset@v1
-        with:
-          asset_content_type: application/octet-stream
-          asset_name: pre-push linux
-          asset_path: ${{ steps.download.outputs.download-path }}/pre-push-ubuntu-latest/pre-push
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_name: ${{ matrix.artifact }}-${{ matrix.os.label }}${{ matrix.os.ext }}
+          asset_path: ${{ steps.download.outputs.download-path }}/${{ matrix.os.label }}-latest/${{ matrix.artifact }}${{ matrix.os.ext }}
+          upload_url: ${{ needs.release.outputs.upload_url }}
+    strategy:
+      matrix:
+        os:
+          - { label: macos, ext: '' }
+          - { label: ubuntu, ext: '' }
+          - { label: windows, ext: '.exe' }
+        artifact:
+          - pre-push
+          - prepare-commit-msg
