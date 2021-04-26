@@ -9,7 +9,7 @@ Some helpful git hooks
 This method can be updated automatically using git, but requires building new versions for each update.
 
 ```bash
-cargo install --git https://github.com/marblenix/git-hooks.git --root ~/.git-hooks
+cargo install --root ~/.git-hooks --git https://github.com/marblenix/git-hooks.git pre-push prepare-commit-msg
 
 git config --global core.hooksPath ~/.git-hooks/bin
 ```
@@ -17,7 +17,7 @@ git config --global core.hooksPath ~/.git-hooks/bin
 Then, whenever you wish to update:
 
 ```bash
-cargo install --git https://github.com/marblenix/git-hooks.git --root ~/.git-hooks --force
+cargo install --force --root ~/.git-hooks --git https://github.com/marblenix/git-hooks.git pre-push prepare-commit-msg
 ```
 
 ### From Release
