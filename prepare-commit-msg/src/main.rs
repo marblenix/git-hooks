@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::process::exit;
 
 use git2::Repository;
-use util::ExitCodes;
+use util::ExitCode;
 
 const SEPARATOR_SETTING: &'static str = "hooks.prepare-commit-msg.branchSeparator";
 const PREPARE_COMMIT_MSG_ENABLED_SETTING: &'static str = "hooks.prepare-commit-msg.enabled";
@@ -22,16 +22,13 @@ fn main() {
 
     let enabled = util::get_config_bool(&repo, PREPARE_COMMIT_MSG_ENABLED_SETTING).unwrap_or(true);
     if !enabled {
-        log::warn!("{}", ExitCodes::Disabled.message());
-        exit(ExitCodes::Disabled.value());
+        log::warn!("{}", ExitCode::Disabled.message());
+        exit(ExitCode::Disabled.value());
     }
 
     if commit_source.is_none() && commit_msg_file.is_some() {
         let working_directory = match repo.workdir() {
-            None => {
-                log::error!("{}", ExitCodes::NoWorkingDirectory.message());
-                exit(ExitCodes::NoWorkingDirectory.value())
-            }
+            None => util::fatal(ExitCode::NoWorkingDirectory),
             Some(working_directory) => working_directory.to_str().unwrap()
         };
 
@@ -49,14 +46,13 @@ fn main() {
             Ok(_) => {}
             Err(e) => {
                 log::trace!("{}", e);
-                log::error!("{}", ExitCodes::FailedToWriteCommitMsg.message());
-                exit(ExitCodes::FailedToWriteCommitMsg.value());
+                util::fatal(ExitCode::FailedToWriteCommitMsg);
             }
         }
     }
 
-    log::debug!("{}", ExitCodes::OK.message());
-    exit(ExitCodes::OK.value())
+    log::debug!("{}", ExitCode::OK.message());
+    exit(ExitCode::OK.value())
 }
 
 fn prepend_file(data: &str, file_path: &str) -> std::io::Result<()> {

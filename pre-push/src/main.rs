@@ -2,7 +2,7 @@ use std::env::args;
 use std::process::exit;
 
 use git2::Repository;
-use util::ExitCodes;
+use util::ExitCode;
 
 const DEFAULT_PROTECTED_BRANCHES: [&str; 2] = ["master", "develop"];
 const PROTECTED_BRANCHES_SETTING: &'static str = "hooks.pre-push.protectedBranches";
@@ -14,14 +14,13 @@ fn main() {
     let repo: Repository = util::get_repository();
 
     if repo.is_bare() {
-        log::error!("{}", ExitCodes::RepositoryIsBare.message());
-        exit(ExitCodes::RepositoryIsBare.value())
+        util::fatal(ExitCode::RepositoryIsBare)
     }
 
     let enabled = util::get_config_bool(&repo, PRE_PUSH_ENABLED_SETTING).unwrap_or(true);
     if !enabled {
-        log::warn!("{}", ExitCodes::Disabled.message());
-        exit(ExitCodes::Disabled.value());
+        log::warn!("{}", ExitCode::Disabled.message());
+        exit(ExitCode::Disabled.value());
     }
 
     let mut protected_branches: Vec<String> =
@@ -35,10 +34,9 @@ fn main() {
 
     let branch_name = util::get_branch_name(&repo);
     if protected_branches.contains(&branch_name) {
-        log::error!("{}", ExitCodes::ProtectedBranch.message());
-        exit(ExitCodes::ProtectedBranch.value())
+        util::fatal(ExitCode::ProtectedBranch)
     }
 
-    log::debug!("{}", ExitCodes::OK.message());
-    exit(ExitCodes::OK.value())
+    log::debug!("{}", ExitCode::OK.message());
+    exit(ExitCode::OK.value())
 }
