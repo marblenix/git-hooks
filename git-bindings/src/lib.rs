@@ -1,6 +1,4 @@
 use git2::{Config, ErrorCode, Reference, Repository};
-use log::LevelFilter;
-use simplelog::{ColorChoice, CombinedLogger, ConfigBuilder, LevelPadding, TerminalMode, TermLogger};
 
 pub enum ExitCode {
     OK,
@@ -52,19 +50,6 @@ impl ExitCode {
 pub fn fatal(code: ExitCode) -> ! {
     log::error!("{}", code.message());
     std::process::exit(code.value())
-}
-
-// Initialize logging framework
-pub fn log_init() {
-    let term_logger = TermLogger::new(
-        LevelFilter::Debug,
-        ConfigBuilder::new()
-            .set_level_padding(LevelPadding::Off)
-            .build(),
-        TerminalMode::Mixed,
-        ColorChoice::Never,
-    );
-    CombinedLogger::init(vec![term_logger]).unwrap();
 }
 
 pub fn get_repository() -> Repository {
@@ -121,7 +106,7 @@ pub fn get_config_bool(repo: &Repository, key: &str) -> Option<bool> {
                 None
             }
         },
-        None => None
+        None => None,
     }
 }
 
@@ -130,11 +115,15 @@ pub fn get_config_string(repo: &Repository, key: &str) -> Option<String> {
         Some(config) => match config.get_string(key) {
             Ok(val) => Some(val),
             Err(e) => {
-                log::debug!("Could not get string value from key {}: {}", key, e.message());
+                log::debug!(
+                    "Could not get string value from key {}: {}",
+                    key,
+                    e.message()
+                );
                 None
             }
         },
-        None => None
+        None => None,
     }
 }
 
@@ -146,7 +135,7 @@ pub fn get_multi_config_string(repo: &Repository, key: &str) -> Option<Vec<Strin
                 ret.push(val.parse().unwrap())
             }
             Some(ret)
-        },
-        None => None
+        }
+        None => None,
     }
 }

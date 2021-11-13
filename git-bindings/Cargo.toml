@@ -1,11 +1,11 @@
 [package]
-name = "pre-push"
+name = "git-bindings"
 version = "0.1.0"
 authors = ["Cassidy Marble"]
 edition = "2021"
 
-[dependencies.git-bindings]
-path = "../git-bindings"
+[dependencies]
+git2 = "0.13"
 
 [dependencies.log]
 version = "0.4"

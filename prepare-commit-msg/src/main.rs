@@ -4,23 +4,22 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::exit;
 
-use git2::Repository;
-use util::ExitCode;
+use git_bindings::ExitCode;
 
 const SEPARATOR_SETTING: &'static str = "hooks.prepare-commit-msg.branchSeparator";
 const PREPARE_COMMIT_MSG_ENABLED_SETTING: &'static str = "hooks.prepare-commit-msg.enabled";
 
 fn main() {
-    util::log_init();
     args().for_each(|a| log::debug!("ARG: {}", a));
     let mut args: Args = args();
     let _binary = args.next();
     let commit_msg_file = args.next();
     let commit_source = args.next();
 
-    let repo: Repository = util::get_repository();
+    let repo = git_bindings::get_repository();
 
-    let enabled = util::get_config_bool(&repo, PREPARE_COMMIT_MSG_ENABLED_SETTING).unwrap_or(true);
+    let enabled =
+        git_bindings::get_config_bool(&repo, PREPARE_COMMIT_MSG_ENABLED_SETTING).unwrap_or(true);
     if !enabled {
         log::warn!("{}", ExitCode::Disabled.message());
         exit(ExitCode::Disabled.value());
@@ -28,25 +27,28 @@ fn main() {
 
     if commit_source.is_none() && commit_msg_file.is_some() {
         let working_directory = match repo.workdir() {
-            None => util::fatal(ExitCode::NoWorkingDirectory),
-            Some(working_directory) => working_directory.to_str().unwrap()
+            None => git_bindings::fatal(ExitCode::NoWorkingDirectory),
+            Some(working_directory) => working_directory.to_str().unwrap(),
         };
 
-        let path: PathBuf = [working_directory, commit_msg_file.unwrap().as_ref()].iter().collect();
+        let path: PathBuf = [working_directory, commit_msg_file.unwrap().as_ref()]
+            .iter()
+            .collect();
         let full_path = path.into_os_string();
         log::debug!("Commit msg file: {:?}", full_path);
-        let branch_name = util::get_branch_name(&repo);
+        let branch_name = git_bindings::get_branch_name(&repo);
 
         let dynamic_message = format!(
             "{} {} ",
             branch_name,
-            util::get_config_string(&repo, SEPARATOR_SETTING).unwrap_or("|".to_string()));
+            git_bindings::get_config_string(&repo, SEPARATOR_SETTING).unwrap_or("|".to_string())
+        );
 
         match prepend_file(dynamic_message.as_str(), full_path.to_str().unwrap()) {
             Ok(_) => {}
             Err(e) => {
                 log::trace!("{}", e);
-                util::fatal(ExitCode::FailedToWriteCommitMsg);
+                git_bindings::fatal(ExitCode::FailedToWriteCommitMsg);
             }
         }
     }

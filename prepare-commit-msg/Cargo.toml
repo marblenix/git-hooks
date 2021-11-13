@@ -2,11 +2,10 @@
 name = "prepare-commit-msg"
 version = "0.1.0"
 authors = ["Cassidy Marble"]
-edition = "2018"
+edition = "2021"
 
-[dependencies]
-git2 = "0.13"
-util = { path = "../util" }
+[dependencies.git-bindings]
+path = "../git-bindings"
 
 [dependencies.log]
 version = "0.4"
