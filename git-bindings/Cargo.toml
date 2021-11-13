@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Cassidy Marble"]
 edition = "2021"
 
-[dependencies]
-git2 = "0.13"
-
 [dependencies.logging]
 path = "../logging"
+
+[dependencies]
+git2 = "0.13"

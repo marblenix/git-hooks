@@ -140,14 +140,12 @@ impl Meta {
 
 fn main() {
     logging::log_init();
-    args()
-        .map(|arg| format!("ARG: {}", arg))
-        .for_each(|arg| logging::debug_m(arg.as_str()));
+    logging::log_args(args());
+
     let mut args: Args = args();
     let _binary = args.next();
     let commit_msg_file = args.next();
     let commit_source = args.next();
-
     let repo = git_bindings::get_repository();
 
     let enabled = git_bindings::get_config_bool(&repo, PREPARE_COMMIT_MSG_ENABLED_SETTING)

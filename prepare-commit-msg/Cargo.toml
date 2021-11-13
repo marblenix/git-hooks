@@ -10,5 +10,5 @@ path = "../git-bindings"
 [dependencies.logging]
 path = "../logging"
 
-[dependencies.regex]
-version = "1"
+[dependencies]
+regex = "1"

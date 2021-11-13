@@ -11,9 +11,8 @@ const PROTECTED_BRANCHES_SETTING: &'static str = "hooks.pre-push.protectedBranch
 
 fn main() {
     logging::log_init();
-    args()
-        .map(|arg| format!("ARG: {}", arg))
-        .for_each(|arg| logging::debug_m(arg.as_str()));
+    logging::log_args(args());
+
     let repo = get_repository();
 
     if repo.is_bare() {

@@ -2,6 +2,7 @@ use log::LevelFilter;
 use simplelog::{
     ColorChoice, CombinedLogger, ConfigBuilder, LevelPadding, TermLogger, TerminalMode,
 };
+use std::env::Args;
 
 pub enum ExitCode {
     OK,
@@ -54,7 +55,7 @@ impl ExitCode {
 // Initialize logging framework
 pub fn log_init() {
     let term_logger = TermLogger::new(
-        LevelFilter::Debug,
+        log::STATIC_MAX_LEVEL,
         ConfigBuilder::new()
             .set_level_padding(LevelPadding::Off)
             .build(),
@@ -62,6 +63,20 @@ pub fn log_init() {
         ColorChoice::Never,
     );
     CombinedLogger::init(vec![term_logger]).unwrap();
+}
+
+pub fn log_args(args: Args) {
+    let current_log_level = log::STATIC_MAX_LEVEL as usize;
+    if current_log_level < LevelFilter::Debug as usize {
+        return;
+    }
+
+    let mut i = 0;
+    for arg in args {
+        let msg = format!("ARG[{}]: {}", i, arg);
+        debug_m(msg.as_str());
+        i += 1;
+    }
 }
 
 pub fn fatal(code: ExitCode) -> ! {
