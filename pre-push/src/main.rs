@@ -1,41 +1,42 @@
 use std::env::args;
 use std::process::exit;
 
-use git_bindings::ExitCode;
+use git_bindings::{get_branch_name, get_config_bool, get_multi_config_string, get_repository};
+use logging::{fatal, ExitCode};
 
-const DEFAULT_PROTECTED_BRANCHES: [&str; 2] = ["master", "develop"];
+const PRE_PUSH_ENABLED_DEFAULT: &'static bool = &true;
 const PRE_PUSH_ENABLED_SETTING: &'static str = "hooks.pre-push.enabled";
+const PROTECTED_BRANCHES_DEFAULT: [&str; 2] = ["master", "develop"];
 const PROTECTED_BRANCHES_SETTING: &'static str = "hooks.pre-push.protectedBranches";
 
 fn main() {
-    args().for_each(|a| log::debug!("ARG: {}", a));
-    let repo = git_bindings::get_repository();
+    logging::log_init();
+    args()
+        .map(|arg| format!("ARG: {}", arg))
+        .for_each(|arg| logging::debug_m(arg.as_str()));
+    let repo = get_repository();
 
     if repo.is_bare() {
-        git_bindings::fatal(ExitCode::RepositoryIsBare)
+        fatal(ExitCode::RepositoryIsBare)
     }
 
-    let enabled = git_bindings::get_config_bool(&repo, PRE_PUSH_ENABLED_SETTING).unwrap_or(true);
+    let enabled =
+        get_config_bool(&repo, PRE_PUSH_ENABLED_SETTING).unwrap_or(*PRE_PUSH_ENABLED_DEFAULT);
     if !enabled {
-        log::warn!("{}", ExitCode::Disabled.message());
+        logging::warn(ExitCode::Disabled);
         exit(ExitCode::Disabled.value());
     }
 
-    let mut protected_branches: Vec<String> =
-        git_bindings::get_multi_config_string(&repo, PROTECTED_BRANCHES_SETTING)
-            .unwrap_or(Vec::new());
+    let protected_branches: Vec<String> =
+        get_multi_config_string(&repo, PROTECTED_BRANCHES_SETTING).unwrap_or(Vec::from(
+            PROTECTED_BRANCHES_DEFAULT.map(|b| String::from(b)),
+        ));
 
-    if protected_branches.len() == 0 {
-        for branch in DEFAULT_PROTECTED_BRANCHES.to_vec() {
-            protected_branches.push(branch.parse().unwrap())
-        }
-    }
-
-    let branch_name = git_bindings::get_branch_name(&repo);
+    let branch_name = get_branch_name(&repo);
     if protected_branches.contains(&branch_name) {
-        git_bindings::fatal(ExitCode::ProtectedBranch)
+        fatal(ExitCode::ProtectedBranch)
     }
 
-    log::debug!("{}", ExitCode::OK.message());
+    logging::debug(ExitCode::OK);
     exit(ExitCode::OK.value())
 }

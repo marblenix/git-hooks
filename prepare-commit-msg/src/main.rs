@@ -1,3 +1,4 @@
+use logging::{fatal, ExitCode};
 use regex::Regex;
 use std::env::{args, Args};
 use std::fmt::Formatter;
@@ -6,12 +7,11 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::exit;
 
-use git_bindings::ExitCode;
-
-const PREPARE_COMMIT_MSG_ENABLED_SETTING: &'static str = "hooks.prepare-commit-msg.enabled";
 const PREPARE_COMMIT_MSG_ENABLED_DEFAULT: &'static bool = &true;
-const SEPARATOR_SETTING: &'static str = "hooks.prepare-commit-msg.branchSeparator";
+const PREPARE_COMMIT_MSG_ENABLED_SETTING: &'static str = "hooks.prepare-commit-msg.enabled";
 const SEPARATOR_DEFAULT: &'static str = "|";
+const SEPARATOR_SETTING: &'static str = "hooks.prepare-commit-msg.branchSeparator";
+
 const JIRA_REGEX: &'static str = r"((([A-Z]{1,10})-?)[A-Z]+-\d+)";
 
 #[derive(Debug, Eq, PartialEq)]
@@ -139,7 +139,10 @@ impl Meta {
 }
 
 fn main() {
-    args().for_each(|a| log::debug!("ARG: {}", a));
+    logging::log_init();
+    args()
+        .map(|arg| format!("ARG: {}", arg))
+        .for_each(|arg| logging::debug_m(arg.as_str()));
     let mut args: Args = args();
     let _binary = args.next();
     let commit_msg_file = args.next();
@@ -150,13 +153,13 @@ fn main() {
     let enabled = git_bindings::get_config_bool(&repo, PREPARE_COMMIT_MSG_ENABLED_SETTING)
         .unwrap_or(*PREPARE_COMMIT_MSG_ENABLED_DEFAULT);
     if !enabled {
-        log::warn!("{}", ExitCode::Disabled.message());
+        logging::warn(ExitCode::Disabled);
         exit(ExitCode::Disabled.value());
     }
 
     if commit_source.is_none() && commit_msg_file.is_some() {
         let working_directory = match repo.workdir() {
-            None => git_bindings::fatal(ExitCode::NoWorkingDirectory),
+            None => fatal(ExitCode::NoWorkingDirectory),
             Some(working_directory) => working_directory.to_str().unwrap(),
         };
 
@@ -164,7 +167,8 @@ fn main() {
             .iter()
             .collect();
         let full_path = path.into_os_string();
-        log::debug!("Commit msg file: {:?}", full_path);
+        let msg = format!("Commit msg file: {:?}", full_path);
+        logging::debug_m(msg.as_str());
         let branch_name = git_bindings::get_branch_name(&repo);
 
         let separator = git_bindings::get_config_string(&repo, SEPARATOR_SETTING)
@@ -175,13 +179,13 @@ fn main() {
         match prepend_file(message.as_str(), full_path.to_str().unwrap()) {
             Ok(_) => {}
             Err(e) => {
-                log::trace!("{}", e);
-                git_bindings::fatal(ExitCode::FailedToWriteCommitMsg);
+                logging::trace_m(e.to_string().as_str());
+                fatal(ExitCode::FailedToWriteCommitMsg);
             }
         }
     }
 
-    log::debug!("{}", ExitCode::OK.message());
+    logging::debug(ExitCode::OK);
     exit(ExitCode::OK.value())
 }
 

@@ -1,62 +1,11 @@
 use git2::{Config, ErrorCode, Reference, Repository};
-
-pub enum ExitCode {
-    OK,
-    Disabled,
-    FailedToOpenRepository,
-    RepositoryIsBare,
-    NoWorkingDirectory,
-    InvalidBranch,
-    EmptyBranch,
-    UnknownBranch,
-    BadBranchName,
-    ProtectedBranch,
-    FailedToWriteCommitMsg,
-}
-
-impl ExitCode {
-    pub fn value(&self) -> i32 {
-        match &self {
-            ExitCode::OK => 0,
-            ExitCode::Disabled => 0,
-            ExitCode::FailedToOpenRepository => 1,
-            ExitCode::RepositoryIsBare => 2,
-            ExitCode::NoWorkingDirectory => 3,
-            ExitCode::InvalidBranch => 4,
-            ExitCode::EmptyBranch => 5,
-            ExitCode::UnknownBranch => 6,
-            ExitCode::BadBranchName => 7,
-            ExitCode::ProtectedBranch => 8,
-            ExitCode::FailedToWriteCommitMsg => 9,
-        }
-    }
-    pub fn message(&self) -> &str {
-        match &self {
-            ExitCode::OK => "Success!",
-            ExitCode::Disabled => "Disabled! Skipping git hook",
-            ExitCode::FailedToOpenRepository => "Not a git directory",
-            ExitCode::RepositoryIsBare => "Repository is empty",
-            ExitCode::NoWorkingDirectory => "Repository has no working directory",
-            ExitCode::InvalidBranch => "Invalid branch",
-            ExitCode::EmptyBranch => "Branch has no commits",
-            ExitCode::UnknownBranch => "HEAD is not a branch",
-            ExitCode::BadBranchName => "Branch name is invalid UTF-8",
-            ExitCode::ProtectedBranch => "HEAD refers to a protected branch",
-            ExitCode::FailedToWriteCommitMsg => "Failed to write commit message to file",
-        }
-    }
-}
-
-pub fn fatal(code: ExitCode) -> ! {
-    log::error!("{}", code.message());
-    std::process::exit(code.value())
-}
+use logging::{fatal, ExitCode};
 
 pub fn get_repository() -> Repository {
     match Repository::open(".") {
         Ok(r) => r,
         Err(e) => {
-            log::trace!("{}", e);
+            logging::trace_m(e.message());
             fatal(ExitCode::FailedToOpenRepository);
         }
     }
@@ -66,11 +15,11 @@ pub fn get_branch_name(repo: &Repository) -> String {
     let head: Reference<'_> = match repo.head() {
         Ok(head) => head,
         Err(ref e) if e.code() == ErrorCode::UnbornBranch => {
-            log::trace!("{}", e);
+            logging::trace_m(e.message());
             fatal(ExitCode::EmptyBranch);
         }
         Err(e) => {
-            log::trace!("{}", e);
+            logging::trace_m(e.message());
             fatal(ExitCode::InvalidBranch);
         }
     };
@@ -91,7 +40,8 @@ pub fn get_config(repo: &Repository) -> Option<Config> {
     match repo.config() {
         Ok(config) => Some(config),
         Err(e) => {
-            log::error!("Could not get git config from repo: {}", e.message());
+            let msg = format!("Could not get git config from repo: {}", e.message());
+            logging::error_m(msg.as_str());
             None
         }
     }
@@ -102,7 +52,8 @@ pub fn get_config_bool(repo: &Repository, key: &str) -> Option<bool> {
         Some(config) => match config.get_bool(key) {
             Ok(bool) => Some(bool),
             Err(e) => {
-                log::debug!("Could not get bool value from key {}: {}", key, e.message());
+                let msg = format!("Could not get bool value from key {}: {}", key, e.message());
+                logging::debug_m(msg.as_str());
                 None
             }
         },
@@ -115,11 +66,12 @@ pub fn get_config_string(repo: &Repository, key: &str) -> Option<String> {
         Some(config) => match config.get_string(key) {
             Ok(val) => Some(val),
             Err(e) => {
-                log::debug!(
+                let msg = format!(
                     "Could not get string value from key {}: {}",
                     key,
                     e.message()
                 );
+                logging::debug_m(msg.as_str());
                 None
             }
         },

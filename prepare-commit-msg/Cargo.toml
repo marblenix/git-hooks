@@ -7,9 +7,8 @@ edition = "2021"
 [dependencies.git-bindings]
 path = "../git-bindings"
 
+[dependencies.logging]
+path = "../logging"
+
 [dependencies.regex]
 version = "1"
-
-[dependencies.log]
-version = "0.4"
-features = ["max_level_debug", "release_max_level_warn"]

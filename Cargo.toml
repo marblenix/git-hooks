@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "git-bindings",
+    "logging",
     "pre-push",
     "prepare-commit-msg"
 ]
