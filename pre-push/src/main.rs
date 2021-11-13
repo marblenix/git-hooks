@@ -4,8 +4,8 @@ use std::process::exit;
 use git_bindings::ExitCode;
 
 const DEFAULT_PROTECTED_BRANCHES: [&str; 2] = ["master", "develop"];
-const PROTECTED_BRANCHES_SETTING: &'static str = "hooks.pre-push.protectedBranches";
 const PRE_PUSH_ENABLED_SETTING: &'static str = "hooks.pre-push.enabled";
+const PROTECTED_BRANCHES_SETTING: &'static str = "hooks.pre-push.protectedBranches";
 
 fn main() {
     args().for_each(|a| log::debug!("ARG: {}", a));
