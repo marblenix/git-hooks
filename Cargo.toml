@@ -5,3 +5,16 @@ members = [
     "pre-push",
     "prepare-commit-msg"
 ]
+
+# TODO:
+# applypatch-msg
+# commit-msg
+# fsmonitor-watchman
+# post-update
+# pre-applypatch
+# pre-commit
+# pre-merge-commit
+# pre-rebase
+# pre-receive
+# push-to-checkout
+# update
